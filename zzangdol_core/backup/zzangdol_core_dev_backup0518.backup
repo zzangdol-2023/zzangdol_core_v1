@@ -1,0 +1,330 @@
+/*
+ * Version : 0.1
+ * Created : 2023.5.14
+ * Latest updated : 2023.5.14
+ * Overview : test codes of rosserial & mpu9250
+ * Maintainer : GeonhaPark <geonhab504@gmail.com>,
+ *              GeoChoi,
+ *              GyucheolJung,
+ *              JungcheolBaek
+ * About : zzangdol car opencr wrapper to arduino mega
+ * Reference : https://github.com/ROBOTIS-GIT/OpenCR/blob/master/arduino/opencr_arduino/opencr/libraries/turtlebot3/examples/turtlebot3_waffle/turtlebot3_core/turtlebot3_core.ino
+ */
+
+#include "zzangdol_core_config.h"
+
+Servo Steering_Servo;     // Servo 클래스로 servo객체 생성
+Servo Driving_Servo;      // Servo 클래스로 servo객체 생성
+Servo Transmission_Servo; // Servo 클래스로 servo객체 생성
+
+int steering_pulse_value = 90;      // 오른쪽 45 ~ 중간 90 ~ 왼쪽140;    // 각도를 조절할 변수 value
+int driving_pulse_value = 90;       //   Stop 90 ~ start 96// 각도를 조절할 변수 value
+int transmission_pulse_value = 135; // 2단 35 ~ 3단 90 1단 135 // 각도를 조절할 변수 value
+int steering = 90;
+int driving = 90;
+int transmission = 135;
+int trans_center = 90;
+
+int value_cnt = 0;    // 반복문 cnt 변수
+int data_tmp = 0;     // 임시변수
+bool mode_rc = false; // false 일 경우 자율주행모드, true일 경우 rc카 모드
+
+uint32_t t = 0;
+
+void Buzzer_ON();
+void Buzzer_OFF();
+void Buzzer_ON_OFF();
+void Driving_Print();
+void Timer_Init();
+void checkRCMode();
+
+//--------* Arduino main Functions : Setup & loop *--------//
+// the setup routine runs once when you press reset:
+void setup()
+{
+    /* ros node setup*/
+    nh.initNode();
+    nh.getHardware()->setBaud(115200);
+
+    /* subscriber node setup */
+    nh.subscribe(led_sub);
+    nh.subscribe(cmd_vel_sub);
+
+    /* publisher node setup */
+    nh.advertise(cmd_vel_echo_pub);
+
+    // tf_broadcaster.init(nh);
+
+    /* set pin mode */
+    pinMode(LED_BUILTIN, OUTPUT);
+    pinMode(BUZZER_PIN, OUTPUT);
+    Serial.setTimeout(1);
+
+    /* setup controller(RF) input pins */
+    pinMode(STEERING_RF_IN_PIN, INPUT);
+    pinMode(DRIVING_RF_IN_PIN, INPUT);
+    pinMode(TRANSMISSION_RF_IN_PIN, INPUT);
+
+    /* setup control pins */
+    Steering_Servo.attach(STEERING_SERVO_OUT_PIN);         // servo 서보모터 54번 핀에 연결
+    Driving_Servo.attach(DRIVING_SERVO_OUT_PIN);           // servo 서보모터 55번 핀에 연결
+    Transmission_Servo.attach(TRANSMISSION_SERVO_OUT_PIN); // servo 서보모터 56번 핀에 연결
+    Steering_Servo.write(steering);                        // value값의 각도로 회전. ex) value가 90이라면 90도 회전
+    Driving_Servo.write(driving);                          // value값만큼 회전. 속도조절용.
+    Transmission_Servo.write(transmission);                // value값의 각도로 회전. ex) value가 90이라면 90도 회전
+
+    /* buzzer notifies setup complete */
+    Buzzer_ON_OFF();
+    Buzzer_ON_OFF();
+}
+void loop()
+{
+    t = millis();
+    updateTime(); // ros time update
+
+    if ((t - tTime[0]) >= (1000 / CONTROL_MOTOR_SPEED_FREQUENCY))
+    {
+        updateGoalVelocity(); // 특정 주기마다 goal velocity 업데이트
+
+        if ((t - tTime[6]) > CONTROL_MOTOR_TIMEOUT)
+        {
+            // 일정시간 동안 입력이 없을 시 0의 속도로 구동
+            // motor_driver.controlMotor(WHEEL_RADIUS, WHEEL_SEPARATION, zero_velocity);
+            // TODO zero velocity 상태일때는 그냥 정지하도록 goal velocity도 0으로 만들어보자.
+            // TODO RC카 컨트롤러도 입력에 맞춰서 단계별로 가속할 수 있도록 제어코드 변경.(최대 최소 제한 필요)
+            goal_velocity_from_cmd[LINEAR] = 0;
+            goal_velocity_from_cmd[ANGULAR] = 0;
+            controlMotor(zero_velocity);
+        }
+        else
+        {
+            // timeout이 아닐경우 goal velocity로 구동
+            // motor_driver.controlMotor(WHEEL_RADIUS, WHEEL_SEPARATION, goal_velocity);
+            controlMotor(goal_velocity);
+        }
+        tTime[0] = t;
+    }
+
+    // publish cmd_vel_echo msg - 특정 주기마가 echo cmd_vel 데이터 퍼블리시
+    if ((t - tTime[1]) >= (1000 / CMD_VEL_PUBLISH_FREQUENCY))
+    {
+        publishCmdVelEchoMsg();
+        tTime[1] = t;
+    }
+
+    /* RC mode check는 하단에서 한번에 해야 time이 꼬이지 않음. */
+    checkRCMode(); // RC모드인지 체크
+    if (mode_rc)
+    {
+        getDataFromRFController(); // RF컨트롤러로부터 제어 정보 지속적으로 업데이트
+        tTime[6] = millis();
+    }
+
+    // Call all the callbacks waiting to be called at that point in time
+    nh.spinOnce();
+
+    // Wait the serial link time to process
+    waitForSerialLink(nh.connected());
+}
+
+/*******************************************************************************
+ * Publisher functions
+ *******************************************************************************/
+void publishCmdVelEchoMsg()
+{
+    if ((t - tTime[6]) > CONTROL_MOTOR_TIMEOUT)
+    {
+        cmd_vel_echo.linear.x = zero_velocity[LINEAR];
+        cmd_vel_echo.angular.z = zero_velocity[ANGULAR];
+    }
+    else
+    {
+        cmd_vel_echo.linear.x = goal_velocity[LINEAR];
+        cmd_vel_echo.angular.z = goal_velocity[ANGULAR];
+    }
+    // cmd_vel_echo.linear.x = goal_velocity[LINEAR];
+    // cmd_vel_echo.angular.z = goal_velocity[ANGULAR];
+    cmd_vel_echo_pub.publish(&cmd_vel_echo);
+}
+
+/*******************************************************************************
+ * Callback functions
+ *******************************************************************************/
+void commandVelocityCallback(const geometry_msgs::Twist &cmd_vel)
+{
+    /* change data which will be published to ros core node */
+    goal_velocity_from_cmd[LINEAR] = cmd_vel.linear.x;   // 직선 주행 데이터 받기 및 cmd velocity 업데이트
+    goal_velocity_from_cmd[ANGULAR] = cmd_vel.angular.z; // 각속도 주행 데이터 받기 및 cmd velocity 업데이트
+
+    /* 최대 최소 범위안으로 입력받게끔 설정 */
+    goal_velocity_from_cmd[LINEAR] = constrain(goal_velocity_from_cmd[LINEAR], MIN_LINEAR_VELOCITY, MAX_LINEAR_VELOCITY);
+    goal_velocity_from_cmd[ANGULAR] = constrain(goal_velocity_from_cmd[ANGULAR], MIN_ANGULAR_VELOCITY, MAX_ANGULAR_VELOCITY);
+    tTime[6] = millis();
+}
+
+void messageLEDControlCallback(const std_msgs::Int8 &led_msg)
+{
+    if (led_msg.data == 1)
+        digitalWrite(LED_BUILTIN, HIGH); // turn the LED on (HIGH is the voltage level)
+    else
+        digitalWrite(LED_BUILTIN, LOW); // turn the LED off by making the voltage LOW
+}
+
+/*******************************************************************************
+ * get controller data from RFController
+ *******************************************************************************/
+void getDataFromRFController()
+{
+    // Steering Control -> 3번 샘플링 후 평균 필터
+    for (value_cnt = 0; value_cnt < 3; value_cnt++)
+    {
+        steering_pulse_value = pulseIn(STEERING_RF_IN_PIN, HIGH); // 무선 수신기로부터 PWM 파형 받음. 펄스의 길이를 us 단위로 반환
+        steering = (steering_pulse_value - 751) / 7.67;
+        data_tmp += steering;
+    }
+    steering = data_tmp / 3;
+    data_tmp = 0;
+
+    steering = 180 - steering;
+    if (steering <= 100 && steering >= 80) // 노이즈 때문에 이거 안넣으면 직진에서 덜덜덜 거림.
+        steering = 90;
+
+    // Driving Control
+    driving_pulse_value = pulseIn(DRIVING_RF_IN_PIN, HIGH);
+    driving = (driving_pulse_value - 790) / 7.67;
+
+    if (driving <= 100 && driving >= 80)
+        driving = 90;
+
+    // Serial.print("/ S:");
+    // Serial.print(steering);
+    // Serial.print("/ D:");
+    // Serial.print(driving);
+    // Serial.print("/ B:");
+    // Serial.println(analogRead(A7));
+
+    /* rf컨트롤러로 부터 제어신호 값 업데이트 -> 정규화를 위해 -90 */
+    goal_velocity_from_rf[LINEAR] = (float)driving - 90;
+    goal_velocity_from_rf[ANGULAR] = (float)steering - 90;
+    // constrain(goal_velocity_from_rf[LINEAR], MIN_LINEAR_VELOCITY, MAX_LINEAR_VELOCITY);
+    // constrain(goal_velocity_from_rf[ANGULAR], MIN_ANGULAR_VELOCITY, MAX_ANGULAR_VELOCITY);
+}
+/*******************************************************************************
+ * checkRCMode()
+ *******************************************************************************/
+void checkRCMode()
+{
+    // Trasmission Control -> Data : 3번 샘플링 후 평균 필터
+    // for (value_cnt = 0; value_cnt < 3; value_cnt++)
+    // {
+        transmission_pulse_value = pulseIn(TRANSMISSION_RF_IN_PIN, HIGH);
+        transmission = (transmission_pulse_value - 751) / 7.67;
+        // data_tmp += transmission;
+    // }
+    // transmission = data_tmp / 3;
+    data_tmp = 0;
+
+    transmission += 50;
+    if (trans_center + 5 < transmission)
+        // trans_center = transmission - 1;
+        trans_center = 45;
+
+    if (trans_center - 5 > transmission)
+        // trans_center = transmission + 1;
+        trans_center = 0;
+
+    Transmission_Servo.write(trans_center);
+    // Serial.print("/ T:");
+    // Serial.print(trans_center);
+
+    /* transmission 신호가 120보다 작을 경우 RC 모드로, 클 경우 자율주행 모드로*/
+    transmission < 120 ? mode_rc = true : mode_rc = false;
+
+}
+/*******************************************************************************
+ * controlMotor function
+ *******************************************************************************/
+void controlMotor(float velocity[])
+{
+    /* motor control data update */
+    Driving_Servo.write((int)velocity[LINEAR] + 90);
+    Steering_Servo.write((int)velocity[ANGULAR] + 90);
+}
+
+/*******************************************************************************
+ * Wait for Serial Link
+ *******************************************************************************/
+void waitForSerialLink(bool isConnected)
+{
+    static bool wait_flag = false;
+
+    if (isConnected)
+    {
+        if (wait_flag == false)
+        {
+            delay(10);
+
+            wait_flag = true;
+        }
+    }
+    else
+    {
+        wait_flag = false;
+    }
+}
+
+/*******************************************************************************
+ * Update the base time for interpolation
+ *******************************************************************************/
+void updateTime()
+{
+    current_offset = millis();
+    current_time = nh.now();
+}
+
+/*******************************************************************************
+ * Update Goal Velocity
+ *******************************************************************************/
+void updateGoalVelocity(void)
+{
+    if (mode_rc) // rc 모드일 경우 goal velocity를 rf컨트롤러 값으로 업데이트
+    {
+        goal_velocity[LINEAR] = goal_velocity_from_rf[LINEAR];
+        goal_velocity[ANGULAR] = goal_velocity_from_rf[ANGULAR];
+    }
+    else // 자율주행 모드일 경우 cmd 데이터로 부터 goal velocity 업데이트
+    {
+        goal_velocity[LINEAR] = goal_velocity_from_cmd[LINEAR];
+        goal_velocity[ANGULAR] = goal_velocity_from_cmd[ANGULAR];
+    }
+}
+
+/*******************************************************************************
+ * Huins-AI-Car Bundled Function
+ *******************************************************************************/
+void Buzzer_ON()
+{
+    digitalWrite(BUZZER_PIN, HIGH); // turn the LED on (HIGH is the voltage level)
+}
+void Buzzer_OFF()
+{
+    digitalWrite(BUZZER_PIN, LOW); // turn the LED off by making the voltage LOW
+}
+void Buzzer_ON_OFF()
+{
+    Buzzer_ON();
+    delay(2); // wait for a second
+    Buzzer_OFF();
+}
+void Driving_Print()
+{
+    Serial.print("D: ");
+    Serial.print(driving);
+    Serial.print(", S: ");
+    Serial.println(steering);
+}
+void Timer_Init()
+{
+    Timer1.initialize(50000);              // 1000 000us = 1s  //1초마다 타이머 동작
+    Timer1.attachInterrupt(Driving_Print); // Driver_Oder 함수를 붙임
+}

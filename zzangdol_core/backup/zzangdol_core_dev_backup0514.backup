@@ -1,0 +1,265 @@
+/*
+ * Version : 0.1
+ * Created : 2023.5.14
+ * Latest updated : 2023.5.14
+ * Overview : test codes of rosserial & mpu9250
+ * Maintainer : GeonhaPark <geonhab504@gmail.com>,
+ *              GeoChoi,
+ *              GyucheolJung,
+ *              JungcheolBaek
+ * About : zzangdol car opencr wrapper to arduino mega
+ */
+
+#include <Servo.h>    // servo library for motor control - https://github.com/arduino-libraries/Servo
+#include <TimerOne.h> // TimerOne library for threading in arduino mega - https://github.com/PaulStoffregen/TimerOne
+#include "zzangdol_core_dev_backup0514.backup.roscallback.h"
+
+#define Buzzer_Pin 12
+
+// 차량에 무선 수신기로 부터는 PWM 파형이 출력됨. PWM 신호를 받는 핀이 57~59번 핀
+byte Steering_PIN = 57;
+byte Driving_PIN = 58;
+byte Transmission_PIN = 59;
+
+Servo Steering_servo;     // Servo 클래스로 servo객체 생성
+Servo Driving_servo;      // Servo 클래스로 servo객체 생성
+Servo Transmission_servo; // Servo 클래스로 servo객체 생성
+
+int Steering_value = 90;      // 오른쪽 45 ~ 중간 90 ~ 왼쪽140;    // 각도를 조절할 변수 value
+int Driving_value = 90;       //   Stop 90 ~ start 96// 각도를 조절할 변수 value
+int Transmission_value = 135; // 2단 35 ~ 3단 90 1단 135 // 각도를 조절할 변수 value
+int Steering = 90;
+int Driving = 90;
+int Transmission = 135;
+int trans_center = 90;
+
+int value = 0;
+int data = 0;
+bool mode_rc = 0;
+
+void Buzzer_ON();
+void Buzzer_OFF();
+void Buzzer_ON_OFF();
+int Check_RC();
+void Driving_print();
+void Timer_init();
+
+//--------* Arduino main Functions : Setup & loop *--------//
+//---------------------------------------------------------//
+//---------------------------------------------------------//
+// the setup routine runs once when you press reset:
+void setup()
+{
+    /* ros node setup*/
+    nh.initNode();
+    nh.getHardware()->setBaud(115200);
+
+    nh.subscribe(led_sub);
+    nh.subscribe(cmd_vel_sub);
+
+    // tf_broadcaster.init(nh);
+
+    nh.advertise(cmd_vel_echo_pub);
+
+    /* set pin mode */
+    pinMode(LED_BUILTIN, OUTPUT);
+    pinMode(Buzzer_Pin, OUTPUT);
+    Serial.setTimeout(1);
+
+    /* setup control pins */
+    Steering_servo.attach(54);              // servo 서보모터 54번 핀에 연결
+    Driving_servo.attach(55);               // servo 서보모터 55번 핀에 연결
+    Transmission_servo.attach(56);          // servo 서보모터 56번 핀에 연결
+    Steering_servo.write(Steering);         // value값의 각도로 회전. ex) value가 90이라면 90도 회전
+    Driving_servo.write(Driving);           // value값만큼 회전. 속도조절용.
+    Transmission_servo.write(Transmission); // value값의 각도로 회전. ex) value가 90이라면 90도 회전
+
+    /* setup controller(RF) input pins */
+    pinMode(Steering_PIN, INPUT);
+    pinMode(Driving_PIN, INPUT);
+    pinMode(Transmission_PIN, INPUT);
+
+    /* buzzer notifies setup complete */
+    Buzzer_ON_OFF();
+    Buzzer_ON_OFF();
+}
+
+void loop()
+{
+    uint32_t t = millis();
+    updateTime();
+
+    // publish cmd_vel_echo msg
+    if ((t - tTime[1]) >= (1000 / CMD_VEL_PUBLISH_FREQUENCY))
+    {
+        publishCmdVelEchoMsg();
+        tTime[1] = t;
+    }
+    
+
+
+    // Call all the callbacks waiting to be called at that point in time
+    nh.spinOnce();
+    
+    // Wait the serial link time to process
+    waitForSerialLink(nh.connected());
+
+}
+
+/*******************************************************************************
+ * Publisher functions
+ *******************************************************************************/
+void publishCmdVelEchoMsg()
+{
+    cmd_vel_echo.linear.x = goal_velocity_from_cmd[LINEAR];
+    cmd_vel_echo.angular.z = goal_velocity_from_cmd[ANGULAR];
+    cmd_vel_echo_pub.publish(&cmd_vel_echo);
+}
+
+/*******************************************************************************
+ * Callback functions
+ *******************************************************************************/
+void commandVelocityCallback(const geometry_msgs::Twist &cmd_vel)
+{
+    if (!Check_RC())
+    {
+        Steering = cmd_vel.angular.z;
+        Driving = cmd_vel.linear.x;
+    }
+    else
+    {
+        //////////////////////////Servo/////////////////////////////////
+        // 3번 샘플링 후 평균 필터
+        for (value = 0; value < 3; value++)
+        {
+            Steering_value = pulseIn(Steering_PIN, HIGH); // 무선 수신기로부터 PWM 파형 받음. 펄스의 길이를 us 단위로 반환
+            Steering = (Steering_value - 751) / 7.67;
+            data += Steering;
+        }
+        Steering = data / 3;
+        data = 0;
+
+        Steering = 180 - Steering;
+        if (Steering <= 100 && Steering >= 80) // 노이즈 때문에 이거 안넣으면 직진에서 덜덜덜 거림.
+            Steering = 90;
+
+        /////////////////////////driving////////////////////////////////
+        Driving_value = pulseIn(Driving_PIN, HIGH);
+        Driving = (Driving_value - 790) / 7.67;
+
+        if (Driving <= 96 && Driving >= 84)
+            Driving = 90;
+    }
+    /* change data which will be published to ros core node */
+    goal_velocity_from_cmd[LINEAR] = (float)Driving;
+    goal_velocity_from_cmd[ANGULAR] = (float)Steering;
+
+    /* motor control data update */
+    Driving_servo.write(Driving);
+    Steering_servo.write(Steering);
+    // Serial.print("/ S:");
+    // Serial.print(Steering);
+    // Serial.print("/ D:");
+    // Serial.print(Driving);
+    // Serial.print("/ B:");
+    // Serial.println(analogRead(A7));
+}
+void messageLEDControlCallback(const std_msgs::Int8 &led_msg)
+{
+    if (led_msg.data == 1)
+        digitalWrite(LED_BUILTIN, HIGH); // turn the LED on (HIGH is the voltage level)
+    else
+        digitalWrite(LED_BUILTIN, LOW); // turn the LED off by making the voltage LOW
+}
+
+/*******************************************************************************
+ * Huins-AI-Car Bundled Function
+ *******************************************************************************/
+void Buzzer_ON()
+{
+    // digitalWrite(Buzzer_Pin, LOW);    // turn the LED off by making the voltage LOW
+    digitalWrite(Buzzer_Pin, HIGH); // turn the LED on (HIGH is the voltage level)
+}
+void Buzzer_OFF()
+{
+    // digitalWrite(Buzzer_Pin, HIGH);   // turn the LED on (HIGH is the voltage level)
+    digitalWrite(Buzzer_Pin, LOW); // turn the LED off by making the voltage LOW
+}
+void Buzzer_ON_OFF()
+{
+    Buzzer_ON();
+    delay(2); // wait for a second
+    Buzzer_OFF();
+    // delay(1);                       // wait for a second
+}
+int Check_RC()
+{
+    //////////////////////////transmission/////////////////////////////////
+    // Trasmission Data : 3번 샘플링 후 평균 필터
+    for (value = 0; value < 3; value++)
+    {
+        Transmission_value = pulseIn(Transmission_PIN, HIGH);
+        Transmission = (Transmission_value - 751) / 7.67;
+        data += Transmission;
+    }
+    Transmission = data / 3;
+    data = 0;
+
+    Transmission += 50;
+    if (trans_center + 5 < Transmission)
+        trans_center = Transmission - 1;
+
+    if (trans_center - 5 > Transmission)
+        trans_center = Transmission + 1;
+
+    Transmission_servo.write(trans_center);
+    // Serial.print("/ T:");
+    // Serial.print(trans_center);
+
+    /* Transmission 신호가 120보다 작을 경우 RC 모드로, 클 경우 자율주행 모드로*/
+    Transmission < 120 ? mode_rc = true : mode_rc = false;
+    return mode_rc;
+}
+void Driving_print()
+{
+    Serial.print("D: ");
+    Serial.print(Driving);
+    Serial.print(", S: ");
+    Serial.println(Steering);
+}
+void Timer_init()
+{
+    Timer1.initialize(50000);              // 1000 000us = 1s  //1초마다 타이머 동작
+    Timer1.attachInterrupt(Driving_print); // Driver_Oder 함수를 붙임
+}
+
+/*******************************************************************************
+ * Wait for Serial Link
+ *******************************************************************************/
+void waitForSerialLink(bool isConnected)
+{
+    static bool wait_flag = false;
+
+    if (isConnected)
+    {
+        if (wait_flag == false)
+        {
+            delay(10);
+
+            wait_flag = true;
+        }
+    }
+    else
+    {
+        wait_flag = false;
+    }
+}
+
+/*******************************************************************************
+ * Update the base time for interpolation
+ *******************************************************************************/
+void updateTime()
+{
+    current_offset = millis();
+    current_time = nh.now();
+}

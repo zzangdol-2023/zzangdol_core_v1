@@ -1,0 +1,7 @@
+{
+    "sketch": "zzangdol_core.ino",
+    "output": "build",
+    "configuration": "cpu=atmega2560",
+    "board": "arduino:avr:mega",
+    "port": "/dev/ttyUSB0"
+}

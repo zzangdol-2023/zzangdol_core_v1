@@ -1,0 +1,7 @@
+{
+    "sketch": "drive_mov_avg.ino",
+    "output": "build",
+    "configuration": "cpu=atmega2560",
+    "board": "arduino:avr:mega",
+    "port": "/dev/ttyUSB0"
+}
