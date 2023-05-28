@@ -84,7 +84,8 @@ void commandVelocityCallback(const geometry_msgs::Twist &cmd_vel);
  * Subscribers
  *******************************************************************************/
 ros::Subscriber<std_msgs::Int8> led_sub("led", messageLEDControlCallback);
-ros::Subscriber<geometry_msgs::Twist> cmd_vel_sub("cmd_vel", commandVelocityCallback);
+ros::Subscriber<geometry_msgs::Twist> cmd_vel_sub("cmd_vel_converted", commandVelocityCallback);
+// ros::Subscriber<geometry_msgs::Twist> cmd_vel_sub("cmd_vel", commandVelocityCallback);
 
 /*******************************************************************************
  * Publishers

@@ -5,7 +5,8 @@
  * Maintainer : GeonhaPark <geonhab504@gmail.com>,
  *              GeoChoi,
  *              GyucheolJung,
- *              JungcheolBaek
+ *              JungcheolBaek,
+ *              JungheonSong
  * About : zzangdol car firmware | opencr wrapper to arduino mega
  * Reference : https://github.com/ROBOTIS-GIT/OpenCR/blob/master/arduino/opencr_arduino/opencr/libraries/turtlebot3/examples/turtlebot3_waffle/turtlebot3_core/turtlebot3_core.ino
  */
@@ -104,7 +105,7 @@ void loop()
     /*
     * 
     */
-    // publish cmd_vel_echo msg - 특정 주기마가 echo cmd_vel 데이터 퍼블리시
+    // publish cmd_vel_echo msg - 특정 주기마다 echo cmd_vel 데이터 퍼블리시
     if ((t - tTime[1]) >= (1000 / CMD_VEL_PUBLISH_FREQUENCY))
     {
         publishCmdVelEchoMsg();
@@ -189,7 +190,7 @@ void getDataFromRCController()
     transmission -= 50;
 
     /* transmssion motor control */
-    Transmission_Servo.write(trans_center);
+    Transmission_Servo.write(135);
 
     /* Steering Control -> 이전 MOVING_AVG_LEN 시퀀스만큼의 이동 평균 필터 */
     /******************************************************************/
