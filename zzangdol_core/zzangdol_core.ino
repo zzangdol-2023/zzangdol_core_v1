@@ -1,7 +1,7 @@
 /*
  * Version : 0.1
  * Created : 2023.5.14
- * Latest updated : 2023.5.20
+ * Latest updated : 2023.6.3
  * Maintainer : GeonhaPark <geonhab504@gmail.com>,
  *              GeoChoi,
  *              GyucheolJung,
@@ -34,6 +34,9 @@ int trans_center = 90;
 int value_cnt = 0;    // 반복문 cnt 변수
 int data_tmp = 0;     // 임시변수
 bool mode_rc = false; // false 일 경우 자율주행모드, true일 경우 rc카 모드
+
+int back_driving_flag = 0;     // 후진 flag 변수
+int back_driving_flag_cnt = 0; // 후진 flag 변수
 
 uint32_t t = 0; // 전역 시간 변수
 
@@ -68,7 +71,7 @@ void setup()
     Steering_Servo.attach(STEERING_SERVO_OUT_PIN);         // servo 서보모터 54번 핀에 연결
     Driving_Servo.attach(DRIVING_SERVO_OUT_PIN);           // servo 서보모터 55번 핀에 연결
     Transmission_Servo.attach(TRANSMISSION_SERVO_OUT_PIN); // servo 서보모터 56번 핀에 연결
-    Steering_Servo.write(steering);                        // value값의 각도로 회전. ex) value가 90이라면 90도 회전
+    Steering_Servo.write(steering_center);                 // value값의 각도로 회전. ex) value가 90이라면 90도 회전
     Driving_Servo.write(driving);                          // value값만큼 회전. 속도조절용.
     Transmission_Servo.write(transmission);                // value값의 각도로 회전. ex) value가 90이라면 90도 회전
 
@@ -82,8 +85,8 @@ void loop()
     updateTime(); // ros time update
 
     /*
-    * motor contorol section 
-    */
+     * motor contorol section
+     */
     if ((t - tTime[0]) >= (1000 / CONTROL_MOTOR_SPEED_FREQUENCY))
     {
         updateGoalVelocity(); // 특정 주기마다 goal velocity 업데이트
@@ -92,6 +95,8 @@ void loop()
             // 일정시간 동안 입력이 없을 시 0의 속도로 구동
             goal_velocity_from_cmd[LINEAR] = 0;
             goal_velocity_from_cmd[ANGULAR] = 0;
+            goal_velocity[LINEAR] = zero_velocity[LINEAR];
+            goal_velocity[ANGULAR] = zero_velocity[ANGULAR];
             controlMotor(zero_velocity);
         }
         else
@@ -102,10 +107,7 @@ void loop()
         tTime[0] = t;
     }
 
-    /*
-    * 
-    */
-    // publish cmd_vel_echo msg - 특정 주기마다 echo cmd_vel 데이터 퍼블리시
+    /* publish cmd_vel_echo msg - 특정 주기마다 echo cmd_vel 데이터 퍼블리시 */
     if ((t - tTime[1]) >= (1000 / CMD_VEL_PUBLISH_FREQUENCY))
     {
         publishCmdVelEchoMsg();
@@ -131,16 +133,16 @@ void loop()
  *******************************************************************************/
 void publishCmdVelEchoMsg()
 {
-    if ((t - tTime[6]) > CONTROL_MOTOR_TIMEOUT) // motor timeout zero value echo
-    {
-        cmd_vel_echo.linear.x = zero_velocity[LINEAR];
-        cmd_vel_echo.angular.z = zero_velocity[ANGULAR];
-    }
-    else
-    {
-        cmd_vel_echo.linear.x = goal_velocity[LINEAR];
-        cmd_vel_echo.angular.z = goal_velocity[ANGULAR];
-    }
+    // if ((t - tTime[6]) > CONTROL_MOTOR_TIMEOUT) // motor timeout zero value echo
+    // {
+    //     cmd_vel_echo.linear.x = zero_velocity[LINEAR];
+    //     cmd_vel_echo.angular.z = zero_velocity[ANGULAR];
+    // }
+    // else
+    // {
+    // }
+    cmd_vel_echo.linear.x = round(goal_velocity[LINEAR]);
+    cmd_vel_echo.angular.z = round(goal_velocity[ANGULAR]);
     cmd_vel_echo_pub.publish(&cmd_vel_echo);
 }
 
@@ -199,10 +201,10 @@ void getDataFromRCController()
     steering = (int)((steering_pulse_value - 751) / 7.67);
 
     /* check steering value validity */
-    if (steering >= 135)
-        steering = 135;
-    else if (steering <= 45)
-        steering = 45;
+    if (steering >= 110)
+        steering = 110;
+    else if (steering <= 70)
+        steering = 70;
     steering_sum += steering;
     steering = 180 - (int)(steering_sum / MOVING_AVG_LEN);
 
@@ -224,10 +226,12 @@ void getDataFromRCController()
         driving = 90;
 
     /* check steering value validity */
-    if (driving >= 110)
-        driving = 110;
-    else if (driving <= 70)
-        driving = 70;
+    if (driving >= 99)
+    {
+        driving = 99;
+    }
+    else if (driving <= 78)
+        driving = 78;
 
     /* rc컨트롤러로 부터 제어신호 값 업데이트 -> 정규화를 위해 -90 */
     goal_velocity_from_rc[LINEAR] = (float)driving - 90.0;
@@ -239,8 +243,8 @@ void getDataFromRCController()
 void controlMotor(float velocity[])
 {
     /* motor control data update */
-    Driving_Servo.write((int)velocity[LINEAR] + 90);
-    Steering_Servo.write((int)velocity[ANGULAR] + 90);
+    Driving_Servo.write((int)round(velocity[LINEAR]) + 90);
+    Steering_Servo.write((int)round(velocity[ANGULAR]) + 90);
 }
 
 /*******************************************************************************

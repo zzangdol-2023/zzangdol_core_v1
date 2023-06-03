@@ -23,7 +23,7 @@
 #include <TimerOne.h> // TimerOne library for threading in arduino mega - https://github.com/PaulStoffregen/TimerOne
 
 #define CONTROL_MOTOR_SPEED_FREQUENCY 30        // hz
-#define CONTROL_MOTOR_TIMEOUT 500               // ms
+#define CONTROL_MOTOR_TIMEOUT 300               // ms
 #define IMU_PUBLISH_FREQUENCY 200               // hz
 #define CMD_VEL_PUBLISH_FREQUENCY 30            // hz
 #define DRIVE_INFORMATION_PUBLISH_FREQUENCY 30  // hz
@@ -44,10 +44,10 @@
 #define TRANSMISSION_RC_IN_PIN 59
 
 /* MAX VALUES */
-#define MIN_LINEAR_VELOCITY -45.0
-#define MAX_LINEAR_VELOCITY +45.0
-#define MIN_ANGULAR_VELOCITY -45.0
-#define MAX_ANGULAR_VELOCITY +45.0
+#define MIN_LINEAR_VELOCITY -20.0
+#define MAX_LINEAR_VELOCITY +20.0
+#define MIN_ANGULAR_VELOCITY -20.0
+#define MAX_ANGULAR_VELOCITY +20.0
 
 /* VARIABLES */
 #define MOVING_AVG_LEN 5
