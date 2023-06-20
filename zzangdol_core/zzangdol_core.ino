@@ -56,6 +56,7 @@ void setup()
     nh.advertise(cmd_vel_echo_pub);
 
     // tf_broadcaster.init(nh);
+    // change
 
     /* set pin mode */
     pinMode(LED_BUILTIN, OUTPUT);
@@ -201,10 +202,10 @@ void getDataFromRCController()
     steering = (int)((steering_pulse_value - 751) / 7.67);
 
     /* check steering value validity */
-    if (steering >= 110)
-        steering = 110;
-    else if (steering <= 70)
-        steering = 70;
+    if (steering >= (90+MAX_ANGULAR_VELOCITY))
+        steering = (90+MAX_ANGULAR_VELOCITY);
+    else if (steering <= (90+MIN_ANGULAR_VELOCITY))
+        steering = 90+MIN_ANGULAR_VELOCITY;
     steering_sum += steering;
     steering = 180 - (int)(steering_sum / MOVING_AVG_LEN);
 
