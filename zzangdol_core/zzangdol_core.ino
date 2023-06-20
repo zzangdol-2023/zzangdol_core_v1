@@ -202,10 +202,10 @@ void getDataFromRCController()
     steering = (int)((steering_pulse_value - 751) / 7.67);
 
     /* check steering value validity */
-    if (steering >= (90+MAX_ANGULAR_VELOCITY))
-        steering = (90+MAX_ANGULAR_VELOCITY);
-    else if (steering <= (90+MIN_ANGULAR_VELOCITY))
-        steering = 90+MIN_ANGULAR_VELOCITY;
+    if (steering >= (90 + MAX_ANGULAR_VELOCITY))
+        steering = (90 + MAX_ANGULAR_VELOCITY);
+    else if (steering <= (90 + MIN_ANGULAR_VELOCITY))
+        steering = 90 + MIN_ANGULAR_VELOCITY;
     steering_sum += steering;
     steering = 180 - (int)(steering_sum / MOVING_AVG_LEN);
 
@@ -223,16 +223,11 @@ void getDataFromRCController()
     /******************************************************************/
     driving_pulse_value = pulseIn(DRIVING_RC_IN_PIN, HIGH);
     driving = (int)((driving_pulse_value - 790) / 7.67);
-    if (driving <= 96 && driving >= 84)
-        driving = 90;
-
+    driving = (int)((driving - 90) * 0.5 + 90);
+    if (driving <= 96 && driving >= 84) driving = 90;
     /* check steering value validity */
-    if (driving >= 99)
-    {
-        driving = 99;
-    }
-    else if (driving <= 78)
-        driving = 78;
+    if (driving >= MAX_RC_VELOCITY) driving = MAX_RC_VELOCITY;
+    else if (driving <= MIN_RC_VELOCITY) driving = MIN_RC_VELOCITY;
 
     /* rc컨트롤러로 부터 제어신호 값 업데이트 -> 정규화를 위해 -90 */
     goal_velocity_from_rc[LINEAR] = (float)driving - 90.0;
