@@ -1,6 +1,7 @@
 # zzangdol-ai-car firmware
 
 - created : 23-05-14
+- last-update : 23-06-04
 - maintainer : GeonhaPark | Seunmul <geonhab504@gmail.com>
 - contributor : 
 - about : zzangdol-ai-car controller code 
@@ -8,6 +9,7 @@
 - ros library - https://github.com/frankjoshua/rosserial_arduino_lib
 - servo library for motor control - https://github.com/arduino-libraries/Servo
 - TimerOne library for threading in arduino mega - https://github.com/PaulStoffregen/TimerOne
+- reference code : https://github.com/ROBOTIS-GIT/OpenCR/tree/master/arduino/opencr_arduino/opencr/libraries/turtlebot3/examples/turtlebot3_burger/turtlebot3_core
 
 **dependency list must be concluded your Arduino lib packages path**
 - Linux : /home/$USER/Arduino/libraries   
