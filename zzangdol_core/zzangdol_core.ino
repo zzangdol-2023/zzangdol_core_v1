@@ -223,12 +223,18 @@ void getDataFromRCController()
     /******************************************************************/
     driving_pulse_value = pulseIn(DRIVING_RC_IN_PIN, HIGH);
     driving = (int)((driving_pulse_value - 790) / 7.67);
-    driving = (int)((driving - 90) * 0.1 + 96);
-    if (driving <= 96 && driving >= 84) driving = 90;
-    /* check steering value validity */
-    if (driving >= MAX_RC_VELOCITY) driving = MAX_RC_VELOCITY;
-    else if (driving <= MIN_RC_VELOCITY) driving = MIN_RC_VELOCITY;
+    driving < 90 ? driving = driving : driving = (int)((driving - 90) * 0.2 + 96); // 84보다 작으면 84로, 84보다 크면 96으로
 
+    if (driving <= 96 && driving >= 80)
+        driving = 90;
+
+    /* check steering value validity */
+    if (driving >= MAX_RC_VELOCITY)
+        driving = MAX_RC_VELOCITY;
+    else if (driving <= MIN_RC_VELOCITY)
+        driving = MIN_RC_VELOCITY;
+    // Serial.print("raw data, driving : ");
+    // Serial.println(driving);
     /* rc컨트롤러로 부터 제어신호 값 업데이트 -> 정규화를 위해 -90 */
     goal_velocity_from_rc[LINEAR] = (float)driving - 90.0;
     goal_velocity_from_rc[ANGULAR] = (float)steering_center - 90.0;
