@@ -223,7 +223,7 @@ void getDataFromRCController()
     /******************************************************************/
     driving_pulse_value = pulseIn(DRIVING_RC_IN_PIN, HIGH);
     driving = (int)((driving_pulse_value - 790) / 7.67);
-    driving = (int)((driving - 90) * 0.5 + 90);
+    driving = (int)((driving - 90) * 0.1 + 96);
     if (driving <= 96 && driving >= 84) driving = 90;
     /* check steering value validity */
     if (driving >= MAX_RC_VELOCITY) driving = MAX_RC_VELOCITY;
