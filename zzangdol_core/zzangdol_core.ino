@@ -1,7 +1,7 @@
 /*
- * Version : 0.1
+ * Version : 0.2.0
  * Created : 2023.5.14
- * Latest updated : 2023.6.4
+ * Latest updated : 2023.7.1
  * Maintainer : GeonhaPark <geonhab504@gmail.com>,
  *              GeoChoi,
  *              GyucheolJung,
