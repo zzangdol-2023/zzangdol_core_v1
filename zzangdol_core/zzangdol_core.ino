@@ -13,7 +13,7 @@
 
 #include "zzangdol_core_config.h"
 #define CONTROL_MOTOR_SPEED_FREQUENCY 20 // hz
-#define CONTROL_MOTOR_TIMEOUT 200        // ms
+#define CONTROL_MOTOR_TIMEOUT 750        // ms
 #define CMD_VEL_MSG_PUBLISH_FREQUENCY 30 // hz
 #define DEBUG_LOG_FREQUENCY 10           // hz
 

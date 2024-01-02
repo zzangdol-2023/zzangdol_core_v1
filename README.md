@@ -1,7 +1,7 @@
 # zzangdol-ai-car firmware
 
 - created : 23-05-14
-- last-update : 23-06-04
+- last-update : 24-01-02
 - maintainer : GeonhaPark | Seunmul <geonhab504@gmail.com>
 - contributor : 
 - about : zzangdol-ai-car controller code 
@@ -22,12 +22,18 @@ Arduino
 
 ## Quick Start
 ### zzangdol_core
-- fireware c codes
-- platform : arduino mega 2560
-- about : core code
-- starts with 
+- Firmware codes with C and Arduino Platform
+- Platform : Arduino Mega 2560
+
+### Standard alone Exectuion
 ```bash
 rosrun rosserial_python serial_node.py __name:=zzangdol_core _port:= /dev/ttyUSB0 _baud:=115200
+```
+
+### With roslaunch commands
+```bash
+# requires zzangdol_bringup launch files & dependecies : https://github.com/zzangdol-2023/zzangdol_bringup
+roslaunch zzangdol_bringup zzangdol_core.launch usb_config:=true 
 ```
 
 ### drive_mov_avg
