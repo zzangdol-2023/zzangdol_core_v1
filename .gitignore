@@ -1,5 +1,2 @@
-rosserial*
-turtlebot3_ref
 build
-drive
-drive_original
+.vscode
