@@ -1,17 +1,17 @@
 # zzangdol_core-v1
 
-- created : 23-05-14
-- last-update : 24-01-02
-- maintainer : GeonhaPark | Seunmul <geonhab504@gmail.com>
-- contributor :
-- about : zzangdol-ai-car Firmware codes for MCU(Arduino Mega).
+- Created: 23-05-14
+- Last-update: 24-0-02
+- Maintainer: GeonhaPark | Seunmul <geonhab504@gmail.com>
+- Contributor:
+- About: zzangdol-ai-car Firmware codes for MCU (Arduino Mega).
   - Version 1.
-  - Includes basic communication logic with AP nodes and Car Control logic for zzangdol-ai-car HW
-- dependency :
+  - Includes communication logic between MPU nodes and MCU -- car control logic for zzangdol-ai-car HW
+- dependency:
 - ros library - https://github.com/frankjoshua/rosserial_arduino_lib
 - servo library for motor control - https://github.com/arduino-libraries/Servo
-- TimerOne library for threading in arduino mega - https://github.com/PaulStoffregen/TimerOne
-- reference code : https://github.com/ROBOTIS-GIT/OpenCR/tree/master/arduino/opencr_arduino/opencr/libraries/turtlebot3/examples/turtlebot3_burger/turtlebot3_core
+- TimerOne library for supporting multithread in Arduino Mega - https://github.com/PaulStoffregen/TimerOne
+- reference code: https://github.com/ROBOTIS-GIT/OpenCR/tree/master/arduino/opencr_arduino/opencr/libraries/turtlebot3/examples/turtlebot3_burger/turtlebot3_core
 
 **dependency list must be concluded your Arduino lib packages path**
 
@@ -33,19 +33,19 @@ vscode with Arduino Extension : https://marketplace.visualstudio.com/items?itemN
 
 0. Install Extension and Move to Target directory.
 1. execute with Ctrl+P, Search Arduino, and Click below menu.
-2. **_Arduino : Select Serial Port_** -> Select Port.
-3. **_Arduino : Board Config_** -> Select Arudino Mega or your MCU.
-4. **_Arduino : Upload_** -> .elf files will be created in the "build" directories. And execution files will be automaticly uploaded to MCU
+2. **_Arduino: Select Serial Port_** -> Select Port.
+3. **_Arduino: Board Config_** -> Select Arudino Mega or your MCU.
+4. **_Arduino: Upload_** -> .elf files will be created in the "build" directories. Execution files will be automatically uploaded to MCU
 
 ## 02. Start
 
 ### zzangdol_core
 
 - Firmware codes with C++, Arduino Platform
-- Platform : Arduino Mega 2560
-- Once Build Finished, You can executed rosnodes in the mcu with below codes
+- Platform: Arduino Mega 2560
+- Once the Build is Finished, You can execute ROS nodes in the MCU with the below codes
 
-### Standard alone Exectuion
+### Standard alone Execution
 
 ```bash
 rosrun rosserial_python serial_node.py __name:=zzangdol_core _port:= /dev/ttyUSB0 _baud:=115200
