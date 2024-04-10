@@ -1,19 +1,21 @@
 # zzangdol_core-v1
 
 - Created: 23-05-14
-- Last-update: 24-0-02
+- Last update: 24-0-02
 - Maintainer: GeonhaPark | Seunmul <geonhab504@gmail.com>
 - Contributor:
-- About: zzangdol-ai-car Firmware codes for MCU (Arduino Mega).
-  - Version 1.
-  - Includes communication logic between MPU nodes and MCU -- car control logic for zzangdol-ai-car HW
-- dependency:
-- ros library - https://github.com/frankjoshua/rosserial_arduino_lib
-- servo library for motor control - https://github.com/arduino-libraries/Servo
-- TimerOne library for supporting multithread in Arduino Mega - https://github.com/PaulStoffregen/TimerOne
-- reference code: https://github.com/ROBOTIS-GIT/OpenCR/tree/master/arduino/opencr_arduino/opencr/libraries/turtlebot3/examples/turtlebot3_burger/turtlebot3_core
+- About:
+  + Zzangdol-ai-car Firmware codes for MCU (Arduino Mega).
+  + Version 1.
+  + Includes communication logic between MPU nodes and MCU -- car control logic for zzangdol-ai-car HW
+- Dependency:
+  + ROS library - https://github.com/frankjoshua/rosserial_arduino_lib
+  + Servo library for motor control - https://github.com/arduino-libraries/Servo
+  + TimerOne library for supporting multithread in Arduino Mega - https://github.com/PaulStoffregen/TimerOne
+- Reference codes
+  + https://github.com/ROBOTIS-GIT/OpenCR/tree/master/arduino/opencr_arduino/opencr/libraries/turtlebot3/examples/turtlebot3_burger/turtlebot3_core
 
-**dependency list must be concluded your Arduino lib packages path**
+**Dependency codes must be included in your Arduino library package PATH**
 
 - Linux : /home/$USER/Arduino/libraries  
   Arduino  
