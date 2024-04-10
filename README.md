@@ -15,7 +15,7 @@
 - Reference codes
   + https://github.com/ROBOTIS-GIT/OpenCR/tree/master/arduino/opencr_arduino/opencr/libraries/turtlebot3/examples/turtlebot3_burger/turtlebot3_core
 
-**Dependency codes must be included in your Arduino library package PATH**
+**The above dependency codes must be included in the PATH of your Arduino library package.**
 
 - Linux : /home/$USER/Arduino/libraries  
   Arduino  
@@ -33,8 +33,8 @@ vscode with Arduino Extension : https://marketplace.visualstudio.com/items?itemN
 
 ### How to Build
 
-0. Install Extension and Move to Target directory.
-1. execute with Ctrl+P, Search Arduino, and Click below menu.
+0. Install the extension and move to the Target directory.
+1. Execute with Ctrl+P, Search Arduino, and click the following menu.
 2. **_Arduino: Select Serial Port_** -> Select Port.
 3. **_Arduino: Board Config_** -> Select Arudino Mega or your MCU.
 4. **_Arduino: Upload_** -> .elf files will be created in the "build" directories. Execution files will be automatically uploaded to MCU
@@ -68,8 +68,8 @@ roslaunch zzangdol_bringup zzangdol_core.launch usb_config:=true
 
 ### drive_mov_avg
 
-- Pure firmware codes with moving-avg-filter, which filters extern-RC-controller's input
+- Pure firmware codes with moving-avg-filter, which calculates extern-RC-controller's input
 
 ### examples
 
-- Backup & example codes for Arudino Mega & ROS platform
+- Backup and example codes for Arduino Mega and ROS platform
