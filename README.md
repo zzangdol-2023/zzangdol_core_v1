@@ -47,13 +47,13 @@ vscode with Arduino Extension : https://marketplace.visualstudio.com/items?itemN
 - Platform: Arduino Mega 2560
 - Once the Build is Finished, You can execute ROS nodes in the MCU with the below codes
 
-### Standard alone Execution
+### Standard-alone 
 
 ```bash
 rosrun rosserial_python serial_node.py __name:=zzangdol_core _port:= /dev/ttyUSB0 _baud:=115200
 ```
 
-### With roslaunch commands
+### Roslaunch  
 
 ```bash
 # requires zzangdol_bringup launch files & dependecies : https://github.com/zzangdol-2023/zzangdol_bringup
